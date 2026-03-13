@@ -449,6 +449,9 @@ int main(int argc, const char * argv[]) {
         ignoreSpaceChanged = [parameters[kIgnoreSpaceChanged] boolValue];
         invertIgnoreApps   = [parameters[kInvertIgnoreApps] boolValue];
         invertDisableKey   = [parameters[kInvertDisableKey] boolValue];
+        if (parameters[kShowIcon]) {
+            showIcon = [parameters[kShowIcon] boolValue];
+        }
 
         printf("\nv%s by aaabramov(c) 2026, usage:\n\nHoist\n", HOIST_VERSION);
         printf("  -pollMillis <20, 30, 40, 50, ...>\n");
@@ -599,7 +602,9 @@ int main(int argc, const char * argv[]) {
         findDockApplication();
         findDesktopOrigin();
 
-        statusBarController = [[StatusBarController alloc] init];
+        if (showIcon) {
+            statusBarController = [[StatusBarController alloc] init];
+        }
         [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [[NSApplication sharedApplication] run];
     }

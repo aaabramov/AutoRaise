@@ -98,6 +98,7 @@ int delayCount = 0;
 int pollMillis = 0;
 int disableKey = 0;
 int scaleDurationMs = 600;
+bool showIcon = true;
 
 // ---- Config key constants ----
 
@@ -118,15 +119,17 @@ const NSString *kMouseDelta = @"mouseDelta";
 const NSString *kPollMillis = @"pollMillis";
 const NSString *kDisableKey = @"disableKey";
 const NSString *kScaleDuration = @"scaleDuration";
+const NSString *kShowIcon = @"showIcon";
 #ifdef FOCUS_FIRST
 const NSString *kFocusDelay = @"focusDelay";
 NSArray *parametersDictionary = @[kDelay, kWarpX, kWarpY, kScale, kVerbose, kAltTaskSwitcher,
     kFocusDelay, kRequireMouseStop, kIgnoreSpaceChanged, kInvertDisableKey, kInvertIgnoreApps,
     kIgnoreApps, kIgnoreTitles, kStayFocusedBundleIds, kDisableKey, kMouseDelta, kPollMillis,
-    kScaleDuration];
+    kScaleDuration, kShowIcon];
 #else
 NSArray *parametersDictionary = @[kDelay, kWarpX, kWarpY, kScale, kVerbose, kAltTaskSwitcher,
     kRequireMouseStop, kIgnoreSpaceChanged, kInvertDisableKey, kInvertIgnoreApps, kIgnoreApps,
-    kIgnoreTitles, kStayFocusedBundleIds, kDisableKey, kMouseDelta, kPollMillis, kScaleDuration];
+    kIgnoreTitles, kStayFocusedBundleIds, kDisableKey, kMouseDelta, kPollMillis, kScaleDuration,
+    kShowIcon];
 #endif
 NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];

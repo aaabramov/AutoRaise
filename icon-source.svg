@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4A90D9"/>
+      <stop offset="100%" stop-color="#2C5F9E"/>
+    </linearGradient>
+    <linearGradient id="window" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#E8EDF3"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#D0D8E4"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#1a3a6a" flood-opacity="0.35"/>
+    </filter>
+    <filter id="windowShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#1a3a6a" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect x="24" y="24" width="976" height="976" rx="220" ry="220" fill="url(#bg)"/>
+
+  <!-- Back window (slightly offset, dimmed) -->
+  <g filter="url(#windowShadow)" opacity="0.4">
+    <rect x="150" y="310" width="540" height="410" rx="18" fill="url(#window)"/>
+    <!-- Title bar -->
+    <rect x="150" y="310" width="540" height="48" rx="18" fill="#C8D0DC"/>
+    <rect x="150" y="336" width="540" height="22" fill="#C8D0DC"/>
+    <!-- Traffic lights -->
+    <circle cx="184" cy="334" r="10" fill="#FF6058"/>
+    <circle cx="212" cy="334" r="10" fill="#FFBD2E"/>
+    <circle cx="240" cy="334" r="10" fill="#28CA42"/>
+  </g>
+
+  <!-- Front window (raised, prominent) -->
+  <g filter="url(#windowShadow)">
+    <rect x="270" y="175" width="580" height="440" rx="18" fill="url(#window)"/>
+    <!-- Title bar -->
+    <rect x="270" y="175" width="580" height="52" rx="18" fill="#E0E4EC"/>
+    <rect x="270" y="205" width="580" height="22" fill="#E0E4EC"/>
+    <!-- Traffic lights -->
+    <circle cx="306" cy="201" r="11" fill="#FF6058"/>
+    <circle cx="336" cy="201" r="11" fill="#FFBD2E"/>
+    <circle cx="366" cy="201" r="11" fill="#28CA42"/>
+    <!-- Content lines -->
+    <rect x="312" y="255" width="340" height="12" rx="6" fill="#C8D0DC"/>
+    <rect x="312" y="287" width="260" height="12" rx="6" fill="#D4DAE4"/>
+    <rect x="312" y="319" width="400" height="12" rx="6" fill="#D4DAE4"/>
+    <rect x="312" y="351" width="220" height="12" rx="6" fill="#D4DAE4"/>
+  </g>
+
+  <!-- Cursor arrow -->
+  <g filter="url(#shadow)" transform="translate(460, 500)">
+    <path d="M0,0 L0,220 L62,172 L105,258 L142,240 L98,154 L172,148 Z" fill="url(#arrow)" stroke="#2C5F9E" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+</svg>

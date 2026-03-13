@@ -48,7 +48,7 @@ StatusBarController *statusBarController = nil;
 }
 
 - (void)buildPanel {
-    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 560)
+    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 600)
         styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
         backing:NSBackingStoreBuffered defer:YES];
     _panel.title = @"Hoist Preferences";
@@ -56,7 +56,7 @@ StatusBarController *statusBarController = nil;
     _panel.hidesOnDeactivate = NO;
     [_panel center];
 
-    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 520)];
+    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 560)];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 12;
@@ -188,6 +188,12 @@ StatusBarController *statusBarController = nil;
         [stack addArrangedSubview:_launchAtLoginCheckbox];
     }
 
+    // Show Menu Bar Icon checkbox
+    _showIconCheckbox = [NSButton checkboxWithTitle:@"Show Menu Bar Icon" target:self
+        action:@selector(showIconChanged:)];
+    _showIconCheckbox.state = showIcon ? NSControlStateValueOn : NSControlStateValueOff;
+    [stack addArrangedSubview:_showIconCheckbox];
+
     // Open Config Folder button
     NSButton *openConfigButton = [NSButton buttonWithTitle:@"Open Config Folder" target:self
         action:@selector(openConfigFolder:)];
@@ -246,6 +252,8 @@ StatusBarController *statusBarController = nil;
         SMAppService *service = [SMAppService mainAppService];
         _launchAtLoginCheckbox.state = (service.status == SMAppServiceStatusEnabled) ? NSControlStateValueOn : NSControlStateValueOff;
     }
+
+    _showIconCheckbox.state = showIcon ? NSControlStateValueOn : NSControlStateValueOff;
 
     [NSApp activateIgnoringOtherApps:YES];
     [_panel makeKeyAndOrderFront:nil];
@@ -323,6 +331,25 @@ StatusBarController *statusBarController = nil;
             ignoreTitles = @[];
         }
     }
+    [statusBarController saveConfig];
+}
+
+- (void)showIconChanged:(NSButton *)sender {
+    if (sender.state == NSControlStateValueOff) {
+        NSAlert *alert = [[NSAlert alloc] init];
+        alert.messageText = @"Hide Menu Bar Icon?";
+        alert.informativeText = @"The menu bar icon will be hidden after restarting Hoist. "
+            @"To re-enable it, edit ~/.config/hoist/config.json and set \"showIcon\" to true, then restart the app.";
+        alert.alertStyle = NSAlertStyleWarning;
+        [alert addButtonWithTitle:@"Hide Icon"];
+        [alert addButtonWithTitle:@"Cancel"];
+        NSModalResponse response = [alert runModal];
+        if (response != NSAlertFirstButtonReturn) {
+            sender.state = NSControlStateValueOn;
+            return;
+        }
+    }
+    showIcon = (sender.state == NSControlStateValueOn);
     [statusBarController saveConfig];
 }
 
