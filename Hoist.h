@@ -134,6 +134,7 @@ extern int delayCount;
 extern int pollMillis;
 extern int disableKey;
 extern int scaleDurationMs;
+extern bool showIcon;
 
 // ---- Config key constants ----
 
@@ -154,6 +155,7 @@ extern const NSString *kMouseDelta;
 extern const NSString *kPollMillis;
 extern const NSString *kDisableKey;
 extern const NSString *kScaleDuration;
+extern const NSString *kShowIcon;
 #ifdef FOCUS_FIRST
 extern const NSString *kFocusDelay;
 #endif
@@ -203,6 +205,7 @@ extern MDWorkspaceWatcher * workspaceWatcher;
 @property (strong, nonatomic) NSTextField *ignoreAppsField;
 @property (strong, nonatomic) NSTextField *ignoreTitlesField;
 @property (strong, nonatomic) NSButton *launchAtLoginCheckbox;
+@property (strong, nonatomic) NSButton *showIconCheckbox;
 + (instancetype)shared;
 - (void)showWindow;
 - (NSString *)ignoreAppsString;

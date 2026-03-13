@@ -150,6 +150,7 @@
     if (ignoreTitlesStr.length) {
         config[@"ignoreTitles"] = [ignoreTitlesStr componentsSeparatedByString:@","];
     }
+    config[@"showIcon"] = @(showIcon);
     if (mouseDelta > 0) { config[@"mouseDelta"] = @(mouseDelta); }
     if (verbose) { config[@"verbose"] = @YES; }
 
