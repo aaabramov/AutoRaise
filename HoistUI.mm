@@ -165,6 +165,11 @@ StatusBarController *statusBarController = nil;
         [stack addArrangedSubview:_launchAtLoginCheckbox];
     }
 
+    // Open Config Folder button
+    NSButton *openConfigButton = [NSButton buttonWithTitle:@"Open Config Folder" target:self
+        action:@selector(openConfigFolder:)];
+    [stack addArrangedSubview:openConfigButton];
+
     [_panel.contentView addSubview:stack];
 }
 
@@ -283,6 +288,12 @@ StatusBarController *statusBarController = nil;
         }
     }
     [statusBarController saveConfig];
+}
+
+- (void)openConfigFolder:(NSButton *)sender {
+    NSString *configDir = [@"~/.config/hoist" stringByExpandingTildeInPath];
+    [[NSFileManager defaultManager] createDirectoryAtPath:configDir withIntermediateDirectories:YES attributes:nil error:nil];
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:configDir isDirectory:YES]];
 }
 
 - (void)launchAtLoginChanged:(NSButton *)sender API_AVAILABLE(macos(13.0)) {

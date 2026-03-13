@@ -46,7 +46,7 @@ jobs:
 
             ### Option 1: Homebrew (recommended)
             ```
-            brew install aaabramov/hoist/hoist
+            brew install --cask aaabramov/hoist/hoist
             ```
 
             ### Option 2: Install script
@@ -61,3 +61,22 @@ jobs:
                xattr -cr /Applications/Hoist.app
                ```
             3. Launch Hoist and grant Accessibility permission when prompted
+
+      - name: Update Homebrew Cask
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA256=$(shasum -a 256 Hoist.dmg | awk '{print $1}')
+
+          gh repo clone aaabramov/homebrew-hoist /tmp/homebrew-hoist
+          cd /tmp/homebrew-hoist
+
+          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/hoist.rb
+          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/hoist.rb
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/hoist.rb
+          git commit -m "Update Hoist to v${VERSION}"
+          git push
