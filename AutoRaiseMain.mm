@@ -1,3 +1,23 @@
+/*
+ * AutoRaise - Copyright (C) 2026 aaabramov
+ * Some pieces of the code are based on
+ * sbmpost by sbmpost as part of https://github.com/sbmpost/AutoRaise
+ * metamove by jmgao as part of XFree86
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "AutoRaise.h"
 
 //------------------------------------------where it all happens--------------------------------------------

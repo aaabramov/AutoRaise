@@ -10,11 +10,12 @@ AutoRaise is a macOS utility that automatically raises and focuses windows on mo
 
 ```bash
 make            # Build both CLI binary and .app bundle (default target: all)
-make clean      # Remove binaries and .app directory
+make clean      # Remove binaries, object files, and .app directories
 make install    # Install AutoRaise.app to /Applications
 make build      # Clean build with experimental flags (EXPERIMENTAL_FOCUS_FIRST, OLD_ACTIVATION_METHOD)
-make run        # Build with experimental flags and execute
-make debug      # Build with experimental flags, verbose logging, and execute
+make dev        # Clean build of AutoRaiseDev.app with experimental flags (separate bundle ID for parallel dev testing)
+make run        # Dev build and execute
+make debug      # Dev build with verbose logging and execute
 make update     # Build and install to /Applications
 ```
 
