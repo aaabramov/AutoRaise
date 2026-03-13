@@ -191,8 +191,8 @@ like so:
 
 The output should look something like this:
 
-    v5.6 by sbmpost(c) 2026, usage:
-
+    v5.6 by aaabramov(c) 2026, usage:
+    
     Hoist
       -pollMillis <20, 30, 40, 50, ...>
       -delay <0=no-raise, 1=no-delay, 2=50ms, 3=100ms, ...>

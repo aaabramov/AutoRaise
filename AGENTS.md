@@ -29,7 +29,7 @@ The codebase is split into these files, all sharing `Hoist.h`:
 - **`HoistGlobals.mm`** — Global variable definitions, config key constants, `parametersDictionary`/`parameters`
 - **`HoistHelpers.mm`** — Window detection (`get_mousewindow`, `get_raisable_window`, `topwindow`, `fallback`), activation (`activate`, `raiseAndActivate`), mouse warping (`get_mousepoint`), environment checks (`dock_active`, `mc_active`, `findScreen`), yabai focus methods
 - **`HoistWatcher.mm`** — `MDWorkspaceWatcher`: space changes, app activation, cursor scaling, polling timer
-- **`HoistConfig.mm`** — `ConfigClass`: CLI args and config file parsing (`~/.Hoist` or `~/.config/Hoist/config`)
+- **`HoistConfig.mm`** — `ConfigClass`: CLI args and JSON config file parsing (`~/.config/hoist/config.json`)
 - **`HoistUI.mm`** — `PreferencesWindowController` + `StatusBarController`: menu bar icon, context menu, preferences panel, live config persistence
 - **`HoistMain.mm`** — `spaceChanged()`, `appActivated()`, `onTick()` polling loop, `eventTapHandler()`, `main()`
 
@@ -50,5 +50,5 @@ AppKit, ApplicationServices, CoreFoundation, Carbon (legacy), SkyLight (optional
 - **Fallback chain**: Multiple window detection methods (`get_mousewindow` → `fallback`) for reliability across apps
 - **Hard-coded app quirk lists**: Special handling for apps like Finder desktop, IntelliJ (raises on focus), PWAs (Chrome/Brave), and apps without window titles (System Settings, Calculator)
 - **Menu bar status icon**: Left-click toggles raise on/off, right-click shows context menu. App runs as accessory (`NSApplicationActivationPolicyAccessory`)
-- **Live config persistence**: Changes made via menu/preferences are saved immediately to `~/.config/Hoist/config`
+- **Live config persistence**: Changes made via menu/preferences are saved immediately to `~/.config/hoist/config.json` (JSON format)
 - **Config layering**: Config file is always read first as base; CLI arguments override file values
