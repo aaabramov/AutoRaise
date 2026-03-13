@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build
-        run: make all
+        run: make build
 
       - name: Ad-hoc sign app
         run: codesign --force --deep --sign - AutoRaise.app
