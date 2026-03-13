@@ -3,6 +3,7 @@ override CXXFLAGS += -O2 -Wall -fobjc-arc -D"NS_FORMAT_ARGUMENT(A)=" -D"SKYLIGHT
 
 APP_NAME ?= Hoist
 BUNDLE_ID ?= com.iamandrii.hoist
+VERSION ?= $(or $(GITHUB_REF_NAME),$(shell git describe --tags --abbrev=0 2>/dev/null),0.0)
 
 SRCS = HoistGlobals.mm HoistHelpers.mm HoistConfig.mm HoistUI.mm HoistWatcher.mm HoistMain.mm
 OBJS = $(SRCS:.mm=.o)
@@ -31,7 +32,7 @@ Hoist: $(OBJS)
 	g++ $(CXXFLAGS) -o $@ $^ $(FRAMEWORKS)
 
 Hoist.app: Hoist Info.plist Hoist.icns
-	./create-app-bundle.sh $(APP_NAME) $(BUNDLE_ID)
+	./create-app-bundle.sh $(APP_NAME) $(BUNDLE_ID) $(VERSION)
 
 build: clean
 	make CXXFLAGS="-DOLD_ACTIVATION_METHOD -DEXPERIMENTAL_FOCUS_FIRST"
