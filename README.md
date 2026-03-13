@@ -50,15 +50,20 @@ Example advanced compilation command:
 After making the project, you end up with these two files:
 
     AutoRaise (command line version)
-    AutoRaise.app (version without GUI)
+    AutoRaise.app (menu bar app)
 
-The first binary is to be used directly from the command line and accepts parameters. The second binary, AutoRaise.app, can
-be used without a terminal window and relies on the presence of a configuration file. AutoRaise.app runs on the background and
-can only be stopped via "Activity Monitor" or the AppleScript provided near the bottom of this README.
+The first binary is to be used directly from the command line and accepts parameters. The second binary, AutoRaise.app, includes
+a menu bar status icon for runtime configuration:
+
+  - **Left-click** the menu bar icon to toggle AutoRaise on/off.
+  - **Right-click** the menu bar icon to open a context menu where you can adjust delay, warp, scale, and other settings.
+  - Select **Preferences...** from the context menu to open a window with sliders and text fields for fine-tuning all parameters.
+
+Changes made via the menu bar or preferences window are saved automatically to `~/.config/AutoRaise/config`.
 
 **Command line usage:**
 
-    ./AutoRaise -pollMillis 50 -delay 1 -warpX 0.5 -warpY 0.1 -scale 2.5 -altTaskSwitcher false -requireMouseStop false -ignoreSpaceChanged false -ignoreApps "App1,App2" -ignoreTitles "^window$" -stayFocusedBundleIds "Id1,Id2" -disableKey control -mouseDelta 0.1
+    ./AutoRaise -pollMillis 50 -delay 1 -warpX 0.5 -warpY 0.1 -scale 2.5 -scaleDuration 600 -altTaskSwitcher false -requireMouseStop false -ignoreSpaceChanged false -ignoreApps "App1,App2" -ignoreTitles "^window$" -stayFocusedBundleIds "Id1,Id2" -disableKey control -mouseDelta 0.1
 
 *Note*: focusDelay is only supported when compiled with the "EXPERIMENTAL_FOCUS_FIRST" flag.
 
@@ -73,6 +78,8 @@ can only be stopped via "Activity Monitor" or the AppleScript provided near the 
   - warpY: A Factor between 0 and 1. Makes the mouse jump vertically to the activated window. By default disabled.
 
   - scale: Enlarge the mouse for a short period of time after warping it. The default is 2.0. To disable set it to 1.0.
+
+  - scaleDuration: How long (in milliseconds) the enlarged cursor is shown after warping. Minimum = 200 and default = 600.
 
   - altTaskSwitcher: Set to true if you use 3rd party tools to switch between applications (other than standard command-tab).
 
@@ -106,6 +113,7 @@ AutoRaise can read these parameters from a configuration file. To make this happ
     warpX=0.5
     warpY=0.1
     scale=2.5
+    scaleDuration=600
     altTaskSwitcher=false
     requireMouseStop=true
     ignoreSpaceChanged=false
@@ -119,9 +127,10 @@ AutoRaise can read these parameters from a configuration file. To make this happ
 
 **AutoRaise.app usage:**
 
-    a) setup configuration file, see above ^
+    a) optionally setup a configuration file, see above ^
     b) open /Applications/AutoRaise.app (allow Accessibility if asked for)
-    c) either stop AutoRaise via "Activity Monitor" or read on:
+    c) left-click the menu bar icon to toggle on/off, right-click for settings
+    d) or stop AutoRaise via "Activity Monitor" or read on:
 
 To toggle AutoRaise on/off with a keyboard shortcut, paste the AppleScript below into an automator service workflow. Then
 bind the created service to a keyboard shortcut via System Preferences|Keyboard|Shortcuts. This also works for AutoRaise.app
@@ -207,3 +216,7 @@ The output should look something like this:
 *Note*: Dimentium created a homebrew formula for this tool which can be found here:
 
 https://github.com/Dimentium/homebrew-autoraise
+
+**Credits**
+
+This is a fork of [sbmpost/AutoRaise](https://github.com/sbmpost/AutoRaise) — huge thanks to sbmpost for creating and maintaining the original project. The menu bar status icon, preferences window, and runtime configuration features were added in this fork.
