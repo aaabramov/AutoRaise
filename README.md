@@ -2,8 +2,6 @@
 
 A macOS utility that automatically raises and focuses windows on mouse hover. Optionally warps the mouse to the center of the activated window when using Cmd-Tab.
 
-See also: [Focus follows mouse on Stack Overflow](https://stackoverflow.com/questions/98310/focus-follows-mouse-plus-auto-raise-on-mac-os-x)
-
 ## Quick Start
 
 ### Install via Homebrew (recommended)
