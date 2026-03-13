@@ -2,7 +2,7 @@ SKYLIGHT_AVAILABLE := $(shell test -d /System/Library/PrivateFrameworks/SkyLight
 override CXXFLAGS += -O2 -Wall -fobjc-arc -D"NS_FORMAT_ARGUMENT(A)=" -D"SKYLIGHT_AVAILABLE=$(SKYLIGHT_AVAILABLE)"
 
 APP_NAME ?= AutoRaise
-BUNDLE_ID ?= nl.postware.autoraise
+BUNDLE_ID ?= com.iamandrii.autoraise
 
 .PHONY: all clean install build dev run debug update
 
@@ -30,7 +30,7 @@ build: clean
 	make CXXFLAGS="-DOLD_ACTIVATION_METHOD -DEXPERIMENTAL_FOCUS_FIRST"
 
 dev: clean
-	make APP_NAME=AutoRaiseDev BUNDLE_ID=nl.postware.autoraise.dev CXXFLAGS="-DOLD_ACTIVATION_METHOD -DEXPERIMENTAL_FOCUS_FIRST"
+	make APP_NAME=AutoRaiseDev BUNDLE_ID=com.iamandrii.autoraise.dev CXXFLAGS="-DOLD_ACTIVATION_METHOD -DEXPERIMENTAL_FOCUS_FIRST"
 	cp AutoRaise AutoRaiseDev
 
 run: dev

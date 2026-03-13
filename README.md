@@ -164,7 +164,7 @@ that may be present in the System Preferences|Security & Privacy|Privacy|Accessi
 start AutoRaise and enable accessibility again. You can also reset Accessibility permissions from
 the command line:
 
-      tccutil reset Accessibility nl.postware.autoraise
+      tccutil reset Accessibility com.iamandrii.autoraise
 
 - After downloading or updating AutoRaise.app, macOS may flag it with a quarantine attribute that
 prevents it from working properly. Remove it with:

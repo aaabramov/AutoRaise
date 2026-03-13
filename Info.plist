@@ -5,7 +5,7 @@
     <key>CFBundleExecutable</key>
     <string>AutoRaise</string>
     <key>CFBundleIdentifier</key>
-    <string>nl.postware.autoraise</string>
+    <string>com.iamandrii.autoraise</string>
     <key>CFBundleGetInfoString</key>
     <string>Copyright © 2026 sbmpost</string>
     <key>CFBundleShortVersionString</key>
