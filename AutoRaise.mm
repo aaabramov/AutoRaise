@@ -680,6 +680,7 @@ void onTick();
 
 @interface MDWorkspaceWatcher:NSObject {}
 - (id)init;
+- (void)updateWarpObserver;
 @end
 
 static MDWorkspaceWatcher * workspaceWatcher = NULL;
@@ -704,6 +705,18 @@ static MDWorkspaceWatcher * workspaceWatcher = NULL;
         }
     }
     return self;
+}
+
+- (void)updateWarpObserver {
+    NSNotificationCenter * center = [[NSWorkspace sharedWorkspace] notificationCenter];
+    [center removeObserver:self name:NSWorkspaceDidActivateApplicationNotification object:nil];
+    if (warpMouse) {
+        [center addObserver:self selector:@selector(appActivated:)
+            name:NSWorkspaceDidActivateApplicationNotification object:nil];
+        if (verbose) { NSLog(@"Registered app activated selector"); }
+    } else {
+        if (verbose) { NSLog(@"Unregistered app activated selector"); }
+    }
 }
 
 - (void)dealloc {
@@ -879,6 +892,366 @@ NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
     return;
 }
 @end // ConfigClass
+
+//------------------------------------------status bar controller--------------------------------------------
+
+static int savedDelayCount = 0;
+
+@interface StatusBarController : NSObject <NSMenuDelegate>
+@property (strong, nonatomic) NSStatusItem *statusItem;
+@property (strong, nonatomic) NSMenu *menu;
+- (void) saveConfig;
+@end
+
+@implementation StatusBarController
+
+- (instancetype) init {
+    self = [super init];
+    if (self) {
+        savedDelayCount = delayCount;
+        _statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
+        if (@available(macOS 11.0, *)) {
+            _statusItem.button.image = [NSImage imageWithSystemSymbolName:@"cursorarrow.rays"
+                accessibilityDescription:@"AutoRaise"];
+        } else {
+            _statusItem.button.title = @"AR";
+        }
+        [self buildMenu];
+        [self updateIconState];
+
+        // Left click = toggle, right click = menu
+        _statusItem.button.action = @selector(statusItemClicked:);
+        _statusItem.button.target = self;
+        [_statusItem.button sendActionOn:(NSEventMaskLeftMouseUp | NSEventMaskRightMouseUp)];
+    }
+    return self;
+}
+
+- (void) statusItemClicked:(id)sender {
+    NSEvent *event = [NSApp currentEvent];
+    if (event.type == NSEventTypeRightMouseUp) {
+        [self menuNeedsUpdate:_menu];
+        _statusItem.menu = _menu;
+        [_statusItem.button performClick:nil];
+    } else {
+        [self toggleEnabled:sender];
+    }
+}
+
+- (void) menuDidClose:(NSMenu *)menu {
+    _statusItem.menu = nil;
+}
+
+- (void) buildMenu {
+    _menu = [[NSMenu alloc] init];
+    _menu.delegate = self;
+    _menu.autoenablesItems = NO;
+}
+
+- (void) menuNeedsUpdate:(NSMenu *)menu {
+    [menu removeAllItems];
+
+    // Delay submenu
+    NSMenu *delayMenu = [[NSMenu alloc] init];
+    int currentDelay = delayCount ? delayCount : savedDelayCount;
+    for (int i = 0; i <= 10; i++) {
+        NSString *title;
+        if (i == 0) { title = @"Disabled"; }
+        else if (i == 1) { title = @"No delay"; }
+        else { title = [NSString stringWithFormat:@"%d (%dms)", i, (i-1)*pollMillis]; }
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:title action:@selector(setDelay:) keyEquivalent:@""];
+        item.tag = i;
+        item.target = self;
+        item.state = (i == currentDelay) ? NSControlStateValueOn : NSControlStateValueOff;
+        [delayMenu addItem:item];
+    }
+    NSMenuItem *delayItem = [[NSMenuItem alloc] initWithTitle:@"Delay" action:nil keyEquivalent:@""];
+    delayItem.submenu = delayMenu;
+    [menu addItem:delayItem];
+
+    // Warp X submenu
+    [menu addItem:[self warpMenuItemWithTitle:@"Warp X" currentValue:warpX action:@selector(setWarpX:)]];
+
+    // Warp Y submenu
+    [menu addItem:[self warpMenuItemWithTitle:@"Warp Y" currentValue:warpY action:@selector(setWarpY:)]];
+
+    // Scale submenu
+    NSMenu *scaleMenu = [[NSMenu alloc] init];
+    float scaleValues[] = {1.0, 1.5, 2.0, 3.0};
+    for (int i = 0; i < 4; i++) {
+        NSString *title = [NSString stringWithFormat:@"%.1f", scaleValues[i]];
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:title action:@selector(setScale:) keyEquivalent:@""];
+        item.tag = (NSInteger)(scaleValues[i] * 10);
+        item.target = self;
+        item.state = (fabsf(cursorScale - scaleValues[i]) < 0.01) ? NSControlStateValueOn : NSControlStateValueOff;
+        [scaleMenu addItem:item];
+    }
+    NSMenuItem *scaleItem = [[NSMenuItem alloc] initWithTitle:@"Scale" action:nil keyEquivalent:@""];
+    scaleItem.submenu = scaleMenu;
+    [menu addItem:scaleItem];
+
+    // Disable Key submenu
+    NSMenu *dkMenu = [[NSMenu alloc] init];
+    NSArray *dkTitles = @[@"Control", @"Option", @"Disabled"];
+    int dkValues[] = {(int)kCGEventFlagMaskControl, (int)kCGEventFlagMaskAlternate, 0};
+    for (int i = 0; i < 3; i++) {
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:dkTitles[i] action:@selector(setDisableKey:) keyEquivalent:@""];
+        item.tag = dkValues[i];
+        item.target = self;
+        item.state = (disableKey == dkValues[i]) ? NSControlStateValueOn : NSControlStateValueOff;
+        [dkMenu addItem:item];
+    }
+    NSMenuItem *dkItem = [[NSMenuItem alloc] initWithTitle:@"Disable Key" action:nil keyEquivalent:@""];
+    dkItem.submenu = dkMenu;
+    [menu addItem:dkItem];
+
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    // Boolean toggles
+    NSMenuItem *mouseStopItem = [[NSMenuItem alloc] initWithTitle:@"Require Mouse Stop"
+        action:@selector(toggleRequireMouseStop:) keyEquivalent:@""];
+    mouseStopItem.target = self;
+    mouseStopItem.state = requireMouseStop ? NSControlStateValueOn : NSControlStateValueOff;
+    [menu addItem:mouseStopItem];
+
+    NSMenuItem *spaceItem = [[NSMenuItem alloc] initWithTitle:@"Ignore Space Changed"
+        action:@selector(toggleIgnoreSpaceChanged:) keyEquivalent:@""];
+    spaceItem.target = self;
+    spaceItem.state = ignoreSpaceChanged ? NSControlStateValueOn : NSControlStateValueOff;
+    [menu addItem:spaceItem];
+
+    NSMenuItem *altTsItem = [[NSMenuItem alloc] initWithTitle:@"Alt Task Switcher (e.g. AltTab)"
+        action:@selector(toggleAltTaskSwitcher:) keyEquivalent:@""];
+    altTsItem.target = self;
+    altTsItem.state = altTaskSwitcher ? NSControlStateValueOn : NSControlStateValueOff;
+    [menu addItem:altTsItem];
+
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    // Ignore Apps
+    NSMenuItem *ignoreAppsItem = [[NSMenuItem alloc] initWithTitle:@"Ignore Apps..."
+        action:@selector(editIgnoreApps:) keyEquivalent:@""];
+    ignoreAppsItem.target = self;
+    [menu addItem:ignoreAppsItem];
+
+    // Ignore Titles
+    NSMenuItem *ignoreTitlesItem = [[NSMenuItem alloc] initWithTitle:@"Ignore Titles..."
+        action:@selector(editIgnoreTitles:) keyEquivalent:@""];
+    ignoreTitlesItem.target = self;
+    [menu addItem:ignoreTitlesItem];
+
+    [menu addItem:[NSMenuItem separatorItem]];
+
+    // Quit
+    NSMenuItem *quitItem = [[NSMenuItem alloc] initWithTitle:@"Quit"
+        action:@selector(quit:) keyEquivalent:@"q"];
+    quitItem.target = self;
+    [menu addItem:quitItem];
+}
+
+- (NSMenuItem *) warpMenuItemWithTitle:(NSString *)title currentValue:(float)currentValue action:(SEL)action {
+    NSMenu *submenu = [[NSMenu alloc] init];
+    NSArray *labels = @[@"Disabled", @"0.25", @"0.5", @"0.75", @"1.0"];
+    float values[] = {0, 0.25, 0.5, 0.75, 1.0};
+    for (int i = 0; i < 5; i++) {
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:labels[i] action:action keyEquivalent:@""];
+        item.tag = (NSInteger)(values[i] * 100);
+        item.target = self;
+        bool isDisabled = (i == 0 && currentValue <= 0);
+        bool isMatch = (i > 0 && fabsf(currentValue - values[i]) < 0.01);
+        item.state = (isDisabled || isMatch) ? NSControlStateValueOn : NSControlStateValueOff;
+        [submenu addItem:item];
+    }
+    NSMenuItem *menuItem = [[NSMenuItem alloc] initWithTitle:title action:nil keyEquivalent:@""];
+    menuItem.submenu = submenu;
+    return menuItem;
+}
+
+- (void) updateIconState {
+    if (@available(macOS 11.0, *)) {
+        NSImage *img = [NSImage imageWithSystemSymbolName:@"cursorarrow.rays"
+            accessibilityDescription:@"AutoRaise"];
+        if (!delayCount) {
+            NSImageSymbolConfiguration *config = [NSImageSymbolConfiguration
+                configurationWithPaletteColors:@[[NSColor tertiaryLabelColor]]];
+            img = [img imageWithSymbolConfiguration:config];
+        }
+        _statusItem.button.image = img;
+    } else {
+        _statusItem.button.title = delayCount ? @"AR" : @"ar";
+    }
+}
+
+// Actions
+
+- (void) toggleEnabled:(id)sender {
+    if (delayCount) {
+        savedDelayCount = delayCount;
+        delayCount = 0;
+    } else {
+        delayCount = savedDelayCount ? savedDelayCount : 1;
+    }
+    [self updateIconState];
+    [self saveConfig];
+}
+
+- (void) setDelay:(NSMenuItem *)sender {
+    delayCount = (int)sender.tag;
+    if (delayCount) { savedDelayCount = delayCount; }
+    [self updateIconState];
+    [self saveConfig];
+}
+
+- (void) setWarpX:(NSMenuItem *)sender {
+    warpX = sender.tag / 100.0;
+    warpMouse = (warpX > 0 && warpY > 0);
+    [workspaceWatcher updateWarpObserver];
+    [self saveConfig];
+}
+
+- (void) setWarpY:(NSMenuItem *)sender {
+    warpY = sender.tag / 100.0;
+    warpMouse = (warpX > 0 && warpY > 0);
+    [workspaceWatcher updateWarpObserver];
+    [self saveConfig];
+}
+
+- (void) setScale:(NSMenuItem *)sender {
+    cursorScale = sender.tag / 10.0;
+    [self saveConfig];
+}
+
+- (void) setDisableKey:(NSMenuItem *)sender {
+    disableKey = (int)sender.tag;
+    [self saveConfig];
+}
+
+- (void) toggleRequireMouseStop:(id)sender {
+    requireMouseStop = !requireMouseStop;
+    [self saveConfig];
+}
+
+- (void) toggleIgnoreSpaceChanged:(id)sender {
+    ignoreSpaceChanged = !ignoreSpaceChanged;
+    [self saveConfig];
+}
+
+- (void) toggleAltTaskSwitcher:(id)sender {
+    altTaskSwitcher = !altTaskSwitcher;
+    [self saveConfig];
+}
+
+- (void) editIgnoreApps:(id)sender {
+    [self showTextInputAlertWithTitle:@"Ignore Apps"
+        message:@"Comma-separated app names:"
+        currentValue:[self ignoreAppsString]
+        completion:^(NSString *value) {
+            NSMutableArray *arr;
+            if (value.length) {
+                arr = [[NSMutableArray alloc] initWithArray:[value componentsSeparatedByString:@","]];
+            } else {
+                arr = [[NSMutableArray alloc] init];
+            }
+            [arr addObject:AssistiveControl];
+            ignoreApps = [arr copy];
+            [self saveConfig];
+        }];
+}
+
+- (void) editIgnoreTitles:(id)sender {
+    [self showTextInputAlertWithTitle:@"Ignore Titles"
+        message:@"Comma-separated regex patterns:"
+        currentValue:[self ignoreTitlesString]
+        completion:^(NSString *value) {
+            if (value.length) {
+                ignoreTitles = [value componentsSeparatedByString:@","];
+            } else {
+                ignoreTitles = @[];
+            }
+            [self saveConfig];
+        }];
+}
+
+- (void) quit:(id)sender {
+    [[NSApplication sharedApplication] terminate:nil];
+}
+
+// Helpers
+
+- (NSString *) ignoreAppsString {
+    NSMutableArray *filtered = [[NSMutableArray alloc] init];
+    for (NSString *app in ignoreApps) {
+        if (![app isEqualToString:AssistiveControl]) {
+            [filtered addObject:app];
+        }
+    }
+    return [filtered componentsJoinedByString:@","];
+}
+
+- (NSString *) ignoreTitlesString {
+    return [ignoreTitles componentsJoinedByString:@","];
+}
+
+- (void) showTextInputAlertWithTitle:(NSString *)title message:(NSString *)message
+    currentValue:(NSString *)currentValue completion:(void (^)(NSString *))completion {
+    [NSApp activateIgnoringOtherApps:YES];
+    NSAlert *alert = [[NSAlert alloc] init];
+    alert.messageText = title;
+    alert.informativeText = message;
+    [alert addButtonWithTitle:@"OK"];
+    [alert addButtonWithTitle:@"Cancel"];
+    NSTextField *input = [[NSTextField alloc] initWithFrame:NSMakeRect(0, 0, 300, 24)];
+    input.stringValue = currentValue ?: @"";
+    alert.accessoryView = input;
+    if ([alert runModal] == NSAlertFirstButtonReturn) {
+        completion(input.stringValue);
+    }
+}
+
+- (void) saveConfig {
+    NSString *configDir = [NSString stringWithFormat:@"%@/.config/AutoRaise", NSHomeDirectory()];
+    NSString *configPath = [NSString stringWithFormat:@"%@/config", configDir];
+
+    NSFileManager *fm = [NSFileManager defaultManager];
+    if (![fm fileExistsAtPath:configDir]) {
+        [fm createDirectoryAtPath:configDir withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+
+    NSMutableString *content = [[NSMutableString alloc] init];
+    [content appendFormat:@"# AutoRaise configuration (saved by menu bar)\n"];
+    [content appendFormat:@"delay=%d\n", delayCount ? delayCount : savedDelayCount];
+
+    if (warpX > 0) { [content appendFormat:@"warpX=%.2f\n", warpX]; }
+    if (warpY > 0) { [content appendFormat:@"warpY=%.2f\n", warpY]; }
+    [content appendFormat:@"scale=%.1f\n", cursorScale];
+    [content appendFormat:@"pollMillis=%d\n", pollMillis];
+    [content appendFormat:@"requireMouseStop=%s\n", requireMouseStop ? "true" : "false"];
+    [content appendFormat:@"ignoreSpaceChanged=%s\n", ignoreSpaceChanged ? "true" : "false"];
+    [content appendFormat:@"altTaskSwitcher=%s\n", altTaskSwitcher ? "true" : "false"];
+
+    if (disableKey == (int)kCGEventFlagMaskControl) {
+        [content appendFormat:@"disableKey=control\n"];
+    } else if (disableKey == (int)kCGEventFlagMaskAlternate) {
+        [content appendFormat:@"disableKey=option\n"];
+    } else {
+        [content appendFormat:@"disableKey=disabled\n"];
+    }
+
+    NSString *ignoreAppsStr = [self ignoreAppsString];
+    if (ignoreAppsStr.length) {
+        [content appendFormat:@"ignoreApps=%@\n", ignoreAppsStr];
+    }
+    NSString *ignoreTitlesStr = [self ignoreTitlesString];
+    if (ignoreTitlesStr.length) {
+        [content appendFormat:@"ignoreTitles=%@\n", ignoreTitlesStr];
+    }
+    if (mouseDelta > 0) { [content appendFormat:@"mouseDelta=%.1f\n", mouseDelta]; }
+    if (verbose) { [content appendFormat:@"verbose=true\n"]; }
+
+    [content writeToFile:configPath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+}
+
+@end // StatusBarController
 
 //------------------------------------------where it all happens--------------------------------------------
 
@@ -1469,6 +1842,10 @@ int main(int argc, const char * argv[]) {
 
         findDockApplication();
         findDesktopOrigin();
+
+        static StatusBarController *statusBarController = [[StatusBarController alloc] init];
+        (void)statusBarController;
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
         [[NSApplication sharedApplication] run];
     }
     return 0;
