@@ -89,6 +89,9 @@ extern "C" AXError _AXUIElementGetWindow(AXUIElementRef, CGWindowID *out);
 static int raiseDelayCount = 0;
 static pid_t lastFocusedWindow_pid;
 static AXUIElementRef _lastFocusedWindow = NULL;
+#define menuDelayCount raiseDelayCount
+#else
+#define menuDelayCount delayCount
 #endif
 
 static AXObserverRef axObserver = NULL;
@@ -827,17 +830,26 @@ NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
 }
 
 - (void) readConfig:(int) argc {
+    // Always read config file first as a base
+    [self readHiddenConfig];
+
+    // CLI arguments (e.g. -delay 3) override config file values.
+    // Only check NSArgumentDomain to avoid picking up registered defaults.
     if (argc > 1) {
-        // read NSArgumentDomain
-        NSUserDefaults *arguments = [NSUserDefaults standardUserDefaults];
+        NSDictionary *arguments = [[NSUserDefaults standardUserDefaults]
+            volatileDomainForName: NSArgumentDomain];
 
         for (id key in parametersDictionary) {
-            id arg = [arguments objectForKey: key];
-            if (arg != NULL) { parameters[key] = arg; }
+            id arg = arguments[key];
+            if (arg != NULL) {
+                NSLog(@"CLI override: %@ = %@", key, arg);
+                parameters[key] = arg;
+            }
         }
-    } else {
-        [self readHiddenConfig];
     }
+    NSLog(@"Config result: delay=%@, warpX=%@, warpY=%@, scale=%@, scaleDuration=%@",
+        parameters[kDelay], parameters[kWarpX], parameters[kWarpY],
+        parameters[kScale], parameters[kScaleDuration]);
     return;
 }
 
@@ -847,6 +859,7 @@ NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
     if (!hiddenConfigFilePath) { hiddenConfigFilePath = [self getFilePath: @".config/AutoRaise/config"]; }
 
     if (hiddenConfigFilePath) {
+        NSLog(@"Reading config from: %@", hiddenConfigFilePath);
         NSError * error;
         NSString * configContent = [[NSString alloc]
             initWithContentsOfFile: hiddenConfigFilePath
@@ -875,13 +888,10 @@ NSMutableDictionary *parameters = [[NSMutableDictionary alloc] init];
 
 - (void) validateParameters {
     // validate and fix wrong/absent parameters
+    if (!parameters[kDelay]) { parameters[kDelay] = @"1"; }
 #ifdef FOCUS_FIRST
-    if (!parameters[kFocusDelay] && !parameters[kDelay]) {
-#else
-    if (!parameters[kDelay]) {
+    if (!parameters[kFocusDelay]) { parameters[kFocusDelay] = @"1"; }
 #endif
-        parameters[kDelay] = @"1";
-    }
     if (!parameters[kRequireMouseStop]) { parameters[kRequireMouseStop] = @"true"; }
     if ([parameters[kPollMillis] intValue] < 20) { parameters[kPollMillis] = @"50"; }
     if ([parameters[kMouseDelta] floatValue] < 0) { parameters[kMouseDelta] = @"0"; }
@@ -1081,9 +1091,9 @@ static StatusBarController *statusBarController = nil;
 }
 
 - (NSString *)delayString {
-    if (delayCount == 0) { return @"Disabled"; }
-    if (delayCount == 1) { return @"No delay"; }
-    return [NSString stringWithFormat:@"%dms", (delayCount - 1) * pollMillis];
+    if (menuDelayCount == 0) { return @"Disabled"; }
+    if (menuDelayCount == 1) { return @"No delay"; }
+    return [NSString stringWithFormat:@"%dms", (menuDelayCount - 1) * pollMillis];
 }
 
 - (NSString *)ignoreAppsString {
@@ -1098,7 +1108,7 @@ static StatusBarController *statusBarController = nil;
 
 - (void)showWindow {
     // Refresh values before showing
-    _delaySlider.intValue = delayCount;
+    _delaySlider.intValue = menuDelayCount;
     _delayLabel.stringValue = [self delayString];
     _scaleDurationSlider.intValue = scaleDurationMs;
     _scaleDurationLabel.stringValue = [NSString stringWithFormat:@"%dms", scaleDurationMs];
@@ -1119,8 +1129,8 @@ static StatusBarController *statusBarController = nil;
 // Actions
 
 - (void)delaySliderChanged:(NSSlider *)sender {
-    delayCount = sender.intValue;
-    if (delayCount) { savedDelayCount = delayCount; }
+    menuDelayCount = sender.intValue;
+    if (menuDelayCount) { savedDelayCount = menuDelayCount; }
     _delayLabel.stringValue = [self delayString];
     [statusBarController updateIconState];
     [statusBarController saveConfig];
@@ -1234,7 +1244,7 @@ static StatusBarController *statusBarController = nil;
 
     // Delay submenu
     NSMenu *delayMenu = [[NSMenu alloc] init];
-    int currentDelay = delayCount ? delayCount : savedDelayCount;
+    int currentDelay = menuDelayCount ? menuDelayCount : savedDelayCount;
     for (int i = 0; i <= 10; i++) {
         NSString *title;
         if (i == 0) { title = @"Disabled"; }
@@ -1339,8 +1349,8 @@ static StatusBarController *statusBarController = nil;
 }
 
 - (void) setDelay:(NSMenuItem *)sender {
-    delayCount = (int)sender.tag;
-    if (delayCount) { savedDelayCount = delayCount; }
+    menuDelayCount = (int)sender.tag;
+    if (menuDelayCount) { savedDelayCount = menuDelayCount; }
     [self updateIconState];
     [self saveConfig];
 }
@@ -1398,7 +1408,7 @@ static StatusBarController *statusBarController = nil;
 
     NSMutableString *content = [[NSMutableString alloc] init];
     [content appendFormat:@"# AutoRaise configuration (saved by menu bar)\n"];
-    [content appendFormat:@"delay=%d\n", delayCount ? delayCount : savedDelayCount];
+    [content appendFormat:@"delay=%d\n", menuDelayCount ? menuDelayCount : savedDelayCount];
 
     [content appendFormat:@"warpX=%.2f\n", warpX];
     [content appendFormat:@"warpY=%.2f\n", warpY];
@@ -1867,6 +1877,7 @@ int main(int argc, const char * argv[]) {
         [config validateParameters];
 
         delayCount         = [parameters[kDelay] intValue];
+        savedDelayCount    = delayCount ? delayCount : 1;
         warpX              = [parameters[kWarpX] floatValue];
         warpY              = [parameters[kWarpY] floatValue];
         cursorScale        = [parameters[kScale] floatValue];

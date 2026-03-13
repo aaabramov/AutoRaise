@@ -27,9 +27,9 @@ build: clean
 	make CXXFLAGS="-DOLD_ACTIVATION_METHOD -DEXPERIMENTAL_FOCUS_FIRST"
 
 run: build
-	./AutoRaise -focusDelay 1
+	./AutoRaise
 
 debug: build
-	./AutoRaise -focusDelay 1 -verbose 1
+	./AutoRaise -verbose 1
 
 update: build install
