@@ -26,6 +26,7 @@
 #include <Foundation/Foundation.h>
 #include <AppKit/AppKit.h>
 #include <Carbon/Carbon.h>
+#include <ServiceManagement/ServiceManagement.h>
 #include <libproc.h>
 
 #define AUTORAISE_VERSION "5.6"
@@ -942,6 +943,7 @@ static StatusBarController *statusBarController = nil;
 @property (strong, nonatomic) NSPopUpButton *disableKeyPopUp;
 @property (strong, nonatomic) NSTextField *ignoreAppsField;
 @property (strong, nonatomic) NSTextField *ignoreTitlesField;
+@property (strong, nonatomic) NSButton *launchAtLoginCheckbox;
 + (instancetype)shared;
 - (void)showWindow;
 @end
@@ -966,7 +968,7 @@ static StatusBarController *statusBarController = nil;
 }
 
 - (void)buildPanel {
-    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 460)
+    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 500)
         styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
         backing:NSBackingStoreBuffered defer:YES];
     _panel.title = @"AutoRaise Preferences";
@@ -974,7 +976,7 @@ static StatusBarController *statusBarController = nil;
     _panel.hidesOnDeactivate = NO;
     [_panel center];
 
-    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 420)];
+    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 460)];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 12;
@@ -1074,6 +1076,15 @@ static StatusBarController *statusBarController = nil;
     _ignoreTitlesField.delegate = self;
     [stack addArrangedSubview:_ignoreTitlesField];
 
+    // Launch at Login row
+    if (@available(macOS 13.0, *)) {
+        _launchAtLoginCheckbox = [NSButton checkboxWithTitle:@"Launch at Login" target:self
+            action:@selector(launchAtLoginChanged:)];
+        SMAppService *service = [SMAppService mainAppService];
+        _launchAtLoginCheckbox.state = (service.status == SMAppServiceStatusEnabled) ? NSControlStateValueOn : NSControlStateValueOff;
+        [stack addArrangedSubview:_launchAtLoginCheckbox];
+    }
+
     [_panel.contentView addSubview:stack];
 }
 
@@ -1121,6 +1132,10 @@ static StatusBarController *statusBarController = nil;
     else { [_disableKeyPopUp selectItemAtIndex:2]; }
     _ignoreAppsField.stringValue = [self ignoreAppsString] ?: @"";
     _ignoreTitlesField.stringValue = [ignoreTitles componentsJoinedByString:@","] ?: @"";
+    if (@available(macOS 13.0, *)) {
+        SMAppService *service = [SMAppService mainAppService];
+        _launchAtLoginCheckbox.state = (service.status == SMAppServiceStatusEnabled) ? NSControlStateValueOn : NSControlStateValueOff;
+    }
 
     [NSApp activateIgnoringOtherApps:YES];
     [_panel makeKeyAndOrderFront:nil];
@@ -1188,6 +1203,21 @@ static StatusBarController *statusBarController = nil;
         }
     }
     [statusBarController saveConfig];
+}
+
+- (void)launchAtLoginChanged:(NSButton *)sender API_AVAILABLE(macos(13.0)) {
+    SMAppService *service = [SMAppService mainAppService];
+    NSError *error = nil;
+    if (sender.state == NSControlStateValueOn) {
+        [service registerAndReturnError:&error];
+    } else {
+        [service unregisterAndReturnError:&error];
+    }
+    if (error) {
+        NSLog(@"Launch at Login error: %@", error.localizedDescription);
+        // Revert checkbox state on failure
+        sender.state = (service.status == SMAppServiceStatusEnabled) ? NSControlStateValueOn : NSControlStateValueOff;
+    }
 }
 
 @end // PreferencesWindowController
@@ -1303,6 +1333,16 @@ static StatusBarController *statusBarController = nil;
     altTsItem.state = altTaskSwitcher ? NSControlStateValueOn : NSControlStateValueOff;
     [menu addItem:altTsItem];
 
+    // Launch at Login
+    if (@available(macOS 13.0, *)) {
+        NSMenuItem *loginItem = [[NSMenuItem alloc] initWithTitle:@"Launch at Login"
+            action:@selector(toggleLaunchAtLogin:) keyEquivalent:@""];
+        loginItem.target = self;
+        SMAppService *service = [SMAppService mainAppService];
+        loginItem.state = (service.status == SMAppServiceStatusEnabled) ? NSControlStateValueOn : NSControlStateValueOff;
+        [menu addItem:loginItem];
+    }
+
     [menu addItem:[NSMenuItem separatorItem]];
 
     // Preferences
@@ -1391,6 +1431,19 @@ static StatusBarController *statusBarController = nil;
 - (void) toggleAltTaskSwitcher:(id)sender {
     altTaskSwitcher = !altTaskSwitcher;
     [self saveConfig];
+}
+
+- (void) toggleLaunchAtLogin:(id)sender API_AVAILABLE(macos(13.0)) {
+    SMAppService *service = [SMAppService mainAppService];
+    NSError *error = nil;
+    if (service.status == SMAppServiceStatusEnabled) {
+        [service unregisterAndReturnError:&error];
+    } else {
+        [service registerAndReturnError:&error];
+    }
+    if (error) {
+        NSLog(@"Launch at Login error: %@", error.localizedDescription);
+    }
 }
 
 - (void) quit:(id)sender {
