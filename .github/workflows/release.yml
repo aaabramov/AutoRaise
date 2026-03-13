@@ -17,6 +17,9 @@ jobs:
       - name: Build
         run: make all
 
+      - name: Ad-hoc sign app
+        run: codesign --force --deep --sign - AutoRaise.app
+
       - name: Install create-dmg
         run: brew install create-dmg
 
