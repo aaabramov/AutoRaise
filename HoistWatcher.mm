@@ -99,7 +99,7 @@ MDWorkspaceWatcher * workspaceWatcher = NULL;
 - (void)onTick:(NSNumber *)timerInterval {
     [self performSelector: @selector(onTick:)
         withObject: timerInterval
-        afterDelay: timerInterval.floatValue];
+        afterDelay: pollMillis/1000.0];
     onTick();
 }
 

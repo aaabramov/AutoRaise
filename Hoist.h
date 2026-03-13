@@ -189,6 +189,8 @@ extern MDWorkspaceWatcher * workspaceWatcher;
 
 @interface PreferencesWindowController : NSObject <NSTextFieldDelegate>
 @property (strong, nonatomic) NSPanel *panel;
+@property (strong, nonatomic) NSSlider *pollMillisSlider;
+@property (strong, nonatomic) NSTextField *pollMillisLabel;
 @property (strong, nonatomic) NSSlider *delaySlider;
 @property (strong, nonatomic) NSTextField *delayLabel;
 @property (strong, nonatomic) NSSlider *scaleDurationSlider;

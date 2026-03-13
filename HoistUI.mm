@@ -48,7 +48,7 @@ StatusBarController *statusBarController = nil;
 }
 
 - (void)buildPanel {
-    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 500)
+    _panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 420, 560)
         styleMask:(NSWindowStyleMaskTitled | NSWindowStyleMaskClosable)
         backing:NSBackingStoreBuffered defer:YES];
     _panel.title = @"Hoist Preferences";
@@ -56,7 +56,7 @@ StatusBarController *statusBarController = nil;
     _panel.hidesOnDeactivate = NO;
     [_panel center];
 
-    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 460)];
+    NSStackView *stack = [[NSStackView alloc] initWithFrame:NSMakeRect(20, 20, 380, 520)];
     stack.orientation = NSUserInterfaceLayoutOrientationVertical;
     stack.alignment = NSLayoutAttributeLeading;
     stack.spacing = 12;
@@ -156,6 +156,29 @@ StatusBarController *statusBarController = nil;
     _ignoreTitlesField.delegate = self;
     [stack addArrangedSubview:_ignoreTitlesField];
 
+    // Poll Interval row
+    [stack addArrangedSubview:[self labelWithString:@"Poll Interval:"]];
+    NSTextField *pollHint = [NSTextField wrappingLabelWithString:@"How often to check mouse position. Lower = more responsive, higher CPU."];
+    pollHint.font = [NSFont systemFontOfSize:11];
+    pollHint.textColor = [NSColor secondaryLabelColor];
+    pollHint.preferredMaxLayoutWidth = 380;
+    [stack addArrangedSubview:pollHint];
+    NSStackView *pollRow = [[NSStackView alloc] init];
+    pollRow.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    pollRow.spacing = 8;
+    _pollMillisSlider = [[NSSlider alloc] initWithFrame:NSMakeRect(0, 0, 260, 24)];
+    _pollMillisSlider.minValue = 20;
+    _pollMillisSlider.maxValue = 200;
+    _pollMillisSlider.intValue = pollMillis;
+    _pollMillisSlider.numberOfTickMarks = 19;
+    _pollMillisSlider.allowsTickMarkValuesOnly = YES;
+    _pollMillisSlider.target = self;
+    _pollMillisSlider.action = @selector(pollMillisSliderChanged:);
+    _pollMillisLabel = [self valueLabelWithString:[NSString stringWithFormat:@"%dms", pollMillis]];
+    [pollRow addArrangedSubview:_pollMillisSlider];
+    [pollRow addArrangedSubview:_pollMillisLabel];
+    [stack addArrangedSubview:pollRow];
+
     // Launch at Login row
     if (@available(macOS 13.0, *)) {
         _launchAtLoginCheckbox = [NSButton checkboxWithTitle:@"Launch at Login" target:self
@@ -204,6 +227,8 @@ StatusBarController *statusBarController = nil;
 
 - (void)showWindow {
     // Refresh values before showing
+    _pollMillisSlider.intValue = pollMillis;
+    _pollMillisLabel.stringValue = [NSString stringWithFormat:@"%dms", pollMillis];
     _delaySlider.intValue = menuDelayCount;
     _delayLabel.stringValue = [self delayString];
     _scaleDurationSlider.intValue = scaleDurationMs;
@@ -227,6 +252,17 @@ StatusBarController *statusBarController = nil;
 }
 
 // Actions
+
+- (void)pollMillisSliderChanged:(NSSlider *)sender {
+    // Round to nearest 10
+    int raw = sender.intValue;
+    pollMillis = ((raw + 5) / 10) * 10;
+    if (pollMillis < 20) { pollMillis = 20; }
+    sender.intValue = pollMillis;
+    _pollMillisLabel.stringValue = [NSString stringWithFormat:@"%dms", pollMillis];
+    _delayLabel.stringValue = [self delayString];
+    [statusBarController saveConfig];
+}
 
 - (void)delaySliderChanged:(NSSlider *)sender {
     menuDelayCount = sender.intValue;
@@ -328,6 +364,7 @@ StatusBarController *statusBarController = nil;
         } else {
             _statusItem.button.title = @"AR";
         }
+        _statusItem.button.toolTip = @"Hoist";
         [self buildMenu];
         [self updateIconState];
 
