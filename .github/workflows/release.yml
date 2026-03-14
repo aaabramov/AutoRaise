@@ -19,7 +19,7 @@ jobs:
         run: make build
 
       - name: Ad-hoc sign app
-        run: codesign --force --deep --sign - Hoist.app
+        run: codesign --force --deep --sign - --identifier "com.iamandrii.hoist" Hoist.app
 
       - name: Install create-dmg
         run: brew install create-dmg

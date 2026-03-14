@@ -7,3 +7,4 @@ HoistDev.app
 .DS_Store
 Hoist.dmg
 *.o
+.idea/
